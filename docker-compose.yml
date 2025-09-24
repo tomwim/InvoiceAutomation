@@ -1,0 +1,10 @@
+version: "3.9"
+services:
+  orchestrator:
+    build: ./orchestrator
+    env_file: .env.dev
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./orchestrator:/app 
+    command: uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
