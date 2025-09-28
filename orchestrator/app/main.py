@@ -17,6 +17,7 @@ async def lifespan(app: FastAPI):
     yield 
 
     task.cancel()
+    asyncio.create_task(orchestrator.stop())
     print("Application lifespan ended.", flush=True)
     try:
         await task

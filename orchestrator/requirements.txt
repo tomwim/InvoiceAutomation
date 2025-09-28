@@ -2,3 +2,7 @@ fastapi
 uvicorn[standard]
 azure-servicebus
 pydantic
+azure-identity
+azure-storage-blob
+azure-ai-documentintelligence>=1.0.0b4
+aiohttp>=3.8.0
