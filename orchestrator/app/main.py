@@ -29,4 +29,4 @@ app = FastAPI(lifespan=lifespan)
 
 @app.get("/")
 def root():
-    return {"status": "orchestrator running..."}
+    return {"status": "Orchestrator running..."}

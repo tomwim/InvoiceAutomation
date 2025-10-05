@@ -19,7 +19,7 @@ class ServiceOrchestrator():
         self.dispatcher = dispatcher
         self.queues = {
             settings.AZURE_STORAGE_BLOB_CREATED_QUEUE_NAME : self.handle_azure_storage_blob_created,
-            settings.ANALYZE_RECEIPT_QUEUE_NAME : self.handle_receipt,
+            # settings.ANALYZE_RECEIPT_QUEUE_NAME : self.handle_receipt,
         }
 
         if is_debug:
@@ -37,8 +37,9 @@ class ServiceOrchestrator():
         self._service_bus_client = ServiceBusClient.from_connection_string(settings.SERVICE_BUS_CONNECTION_STRING)
 
     async def _subscribe_to_queues(self):
-        async with ServiceBusClient.from_connection_string(settings.SERVICE_BUS_CONNECTION_STRING) as client:
-            tasks = [self._receive_from_queue(client, q) for q in self.queues.keys()]
+        # async with ServiceBusClient.from_connection_string(settings.SERVICE_BUS_CONNECTION_STRING) as client:
+        async with self._service_bus_client:
+            tasks = [self._receive_from_queue(self._service_bus_client, q) for q in self.queues.keys()]
             print(f"TASKS FOR QUEUES {self.queues}", flush=True)
             await asyncio.gather(*tasks)
 
@@ -48,26 +49,31 @@ class ServiceOrchestrator():
             async for msg in receiver:
                 print(f"Received from {queue_name}: {msg})", flush=True)
                 try:
-                    if msg.application_properties:
-                        print(f"Correlation ID: {msg.application_properties.get(b'correlation_id').decode('utf-8')}", flush=True)
-                        print(f"Step: {msg.application_properties.get(b'step').decode('utf-8')}", flush=True)
-                        meta_data = {
-                            "correlation_id" : msg.application_properties.get(b'correlation_id').decode('utf-8'),
-                            "step" : msg.application_properties.get(b'step').decode('utf-8'),
-                        }
-                    else:
-                        meta_data = {
-                            "correlation_id" : "None",
-                            "step" : "Unknown",
-                        }
-                    body_bytes = b"".join(msg.body)
-                    body_str = body_bytes.decode("utf-8")
-                    event_data = json.loads(body_str)
+                    event_data, meta_data = await self.read_message(msg)
                     await receiver.complete_message(msg)
                     await self.queues[queue_name](data=event_data, meta_data=meta_data)
                 except Exception as e:
                     print(f"[{queue_name}] Error: {e}", flush=True)
                     await receiver.abandon_message(msg)
+
+    async def read_message(self, msg):
+        if msg.application_properties:
+            print(f"Correlation ID: {msg.application_properties.get(b'correlation_id').decode('utf-8')}", flush=True)
+            print(f"Step: {msg.application_properties.get(b'step').decode('utf-8')}", flush=True)
+            meta_data = {
+                "correlation_id" : msg.application_properties.get(b'correlation_id').decode('utf-8'),
+                "step" : msg.application_properties.get(b'step').decode('utf-8'),
+            }
+        else:
+            meta_data = {
+                "correlation_id" : "None",
+                "step" : "Unknown",
+            }
+        body_bytes = b"".join(msg.body)
+        body_str = body_bytes.decode("utf-8")
+        event_data = json.loads(body_str)
+
+        return event_data, meta_data
 
     async def _send_message(self, queue_name, data : dict, application_properties : dict):
         sender = self._service_bus_client.get_queue_sender(queue_name=queue_name)
