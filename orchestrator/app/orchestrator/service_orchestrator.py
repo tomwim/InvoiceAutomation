@@ -1,5 +1,5 @@
 from app.storage_listener.storage_listener_service import StorageListener
-from app.document_analyzer.receipt_reader import ReceiptReader, AzureCredentials
+# from receipt_analyzer.src.analyzer.receipt_reader import ReceiptReader, AzureCredentials
 from app.base.dispatcher import Dispatcher
 from app.settings import settings
 
@@ -9,8 +9,7 @@ from azure.servicebus import ServiceBusMessage
 import asyncio
 import json
 
-from azure.ai.documentintelligence.models import AnalyzeResult
-from app.document_analyzer.receipt import AnalyzedReceipt
+# from azure.ai.documentintelligence.models import AnalyzeResult
 
 is_debug = False
 

@@ -1,24 +1,46 @@
-from typing import List
+from typing import List, Any
 from azure.ai.documentintelligence.models import AnalyzedDocument
+from dataclasses import dataclass, field
 
+@dataclass
 class AnalyzedValue():
+    value : Any = None
+    confidence : float = None
+
     def __init__(self, value, confidence : float):
         self.value = value
         self.confidence = confidence
 
+@dataclass
 class TotalAmount(AnalyzedValue):
+    currency : str = None
+
     def __init__(self, value : float, currency : str, confidence : float):
         super().__init__(value=value, confidence=confidence)
         self.currency = currency
 
+@dataclass
 class TaxDetails():
+    amount : TotalAmount = None
+    net_amount : TotalAmount = None
+    rate : AnalyzedValue = None
+    description : AnalyzedValue = None
+    
     def __init__(self, amount : TotalAmount, net_amount : TotalAmount, rate : AnalyzedValue, description : AnalyzedValue):
         self.amount = amount
         self.net_amount = net_amount
         self.rate = rate
-        self.desctription = description
+        self.description = description
 
+@dataclass
 class Item():
+    confidence : float = None
+    price : TotalAmount = None
+    total_price : TotalAmount = None
+    confidence : float = None
+    quantity : AnalyzedValue = None
+    description : AnalyzedValue = None
+
     def __init__(self, confidence : float, price : TotalAmount, total_price : TotalAmount, quantity : AnalyzedValue, description : AnalyzedValue):
         self.confidence = confidence
         self.price = price
@@ -26,19 +48,24 @@ class Item():
         self.quantity = quantity
         self.description = description
 
+@dataclass
 class AnalyzedReceipt():
+    id = id
+
+    country : AnalyzedValue = None
+    merchant : AnalyzedValue = None
+    merchant_address : AnalyzedValue = None
+    time : AnalyzedValue = None
+    date : AnalyzedValue = None
+    total_price : TotalAmount = None
+    total_tax : TotalAmount = None
+    tax_details : TaxDetails = None
+    # items : List[Item] = []
+    items : List['Item'] = field(default_factory=list)
+
     def __init__(self, id : str):
         self.id = id
-
-        self.country : AnalyzedValue = None
-        self.merchant : AnalyzedValue = None
-        self.merchant_address : AnalyzedValue = None
-        self.time : AnalyzedValue = None
-        self.date : AnalyzedValue = None
-        self.total_price : TotalAmount = None
-        self.total_tax : TotalAmount = None
-        self.tax_details : TaxDetails = None
-        self.items : List[Item] = []
+        self.items = []
 
     @classmethod
     def from_analyzed_document(cls, id : str, document : AnalyzedDocument):
@@ -60,7 +87,7 @@ class AnalyzedReceipt():
         )
 
         receipt.time = AnalyzedValue(
-            value=document.fields['TransactionTime'].value_time,
+            value=document.fields['TransactionTime'].value_time or "Unknown",
             confidence=document.fields['TransactionTime'].confidence
         )
 
@@ -131,6 +158,24 @@ class AnalyzedReceipt():
 
         return receipt
         
-    
+def remove_confidence(input) -> dict:
+    """
+    Recursively process nested dict/list structures:
+    - Remove 'confidence' fields
+    - If a dict only has 'value', extract just the value
+    - Otherwise keep the dict with value and other fields (e.g., currency)
+    """
+    if isinstance(input, dict):
+        # Remove confidence and recursively process
+        cleaned = {k: remove_confidence(v) for k, v in input.items() if k != 'confidence'}
+        
+        # If only 'value' remains, extract it
+        if set(cleaned.keys()) == {'value'}:
+            return cleaned['value']
+        
+        return cleaned
+    elif isinstance(input, list):
+        return [remove_confidence(item) for item in input]
+    return input
 
     

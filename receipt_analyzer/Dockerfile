@@ -5,13 +5,13 @@ FROM python:3.11-slim
 WORKDIR /app
 
 # Copy requirements first (better layer caching)
-COPY ./blob_storage_listener/requirements.txt .
+COPY ./receipt_analyzer/requirements.txt .
 
 # Install Python deps
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy application code
-COPY ./blob_storage_listener/src ./src
+COPY ./receipt_analyzer/src ./src
 
 # Copy shared common code (relative to build context!)
 COPY ../common ./common

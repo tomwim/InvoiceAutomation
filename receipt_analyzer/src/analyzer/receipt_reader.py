@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta, timezone
 
-from app.base.base_service import BaseService
-from app.document_analyzer.receipt import AnalyzedReceipt
+from common.utils.base_service import BaseService
+from .receipt import AnalyzedReceipt
 
 from azure.identity import DefaultAzureCredential
 from azure.core.credentials import AzureKeyCredential
