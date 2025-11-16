@@ -2,9 +2,36 @@ version: "3.9"
 services:
   orchestrator:
     build: ./orchestrator
-    env_file: .env.dev
+    env_file: 
+      - .env.dev
     ports:
       - "8000:8000"
     volumes:
       - ./orchestrator:/app 
     command: uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+
+  blob-storage-listener:
+    build:
+      context: .
+      dockerfile: blob_storage_listener/Dockerfile
+    env_file: 
+      - .env.dev
+    ports:
+      - "8001:8001"
+    volumes:
+      - ./blob_storage_listener/src:/app/src 
+      - ./common:/app/common
+    command: uvicorn src.main:app --reload --host 0.0.0.0 --port 8001
+
+  receipt-analyzer:
+    build:
+      context: .
+      dockerfile: receipt_analyzer/Dockerfile
+    env_file: 
+      - .env.dev
+    ports:
+      - "8002:8002"
+    volumes:
+      - ./receipt_analyzer/src:/app/src 
+      - ./common:/app/common
+    command: uvicorn src.main:app --reload --host 0.0.0.0 --port 8002
